@@ -1,1 +1,409 @@
-<!doctype html><meta charset="utf-8"><meta name="robots" content="noindex"><title>Scout</title><p>First run in progress.</p>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scout</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,0.10);
+  --series-1: #2a78d6;
+  --seq-1: #cde2fb; --seq-2: #86b6ef; --seq-3: #3987e5; --seq-4: #1c5cab; --seq-5: #0d366b;
+  --seq-ink-1: #0b0b0b; --seq-ink-2: #0b0b0b; --seq-ink-3: #ffffff; --seq-ink-4: #ffffff; --seq-ink-5: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --seq-1: #184f95; --seq-2: #256abf; --seq-3: #3987e5; --seq-4: #6da7ec; --seq-5: #b7d3f6;
+    --seq-ink-1: #ffffff; --seq-ink-2: #ffffff; --seq-ink-3: #ffffff; --seq-ink-4: #0b0b0b; --seq-ink-5: #0b0b0b;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,0.10);
+  --series-1: #3987e5;
+  --seq-1: #184f95; --seq-2: #256abf; --seq-3: #3987e5; --seq-4: #6da7ec; --seq-5: #b7d3f6;
+  --seq-ink-1: #ffffff; --seq-ink-2: #ffffff; --seq-ink-3: #ffffff; --seq-ink-4: #0b0b0b; --seq-ink-5: #0b0b0b;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1120px; margin: 0 auto; padding-block: 32px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 24px; }
+h1 { font-size: 24px; margin: 0; }
+h2 { font-size: 16px; margin: 0 0 4px; }
+.sub, .meta { color: var(--ink-2); margin: 0 0 16px; font-size: 14px; }
+.meta { margin: 0; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.tile, .card { background: var(--surface); border: 1px solid var(--ring); border-radius: 12px; }
+.tile { padding: 16px; }
+.tile .label { color: var(--ink-2); font-size: 13px; }
+.tile .value { font-size: 28px; font-weight: 600; line-height: 1.2; }
+.tile .note { color: var(--muted); font-size: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 480px), 1fr)); gap: 16px; margin-bottom: 16px; }
+.card { padding: 20px; margin-bottom: 16px; min-width: 0; }
+.grid2 .card { margin-bottom: 0; }
+.empty { color: var(--muted); padding: 24px 0; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { fill: var(--ink-2); font-size: 12px; }
+svg .axis-label { fill: var(--muted); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; font-size: 13px; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.dim { color: var(--muted); }
+.heat td.cell { text-align: center; font-variant-numeric: tabular-nums; border: 2px solid var(--surface); border-radius: 6px; min-width: 76px; cursor: default; }
+.heat td.cell.untested { color: var(--muted); font-size: 12px; background: transparent; outline: 1px solid var(--grid); outline-offset: -3px; }
+.heat td.cell:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; color: var(--ink-2); font-size: 12px; margin-top: 10px; }
+.swatch { display: inline-block; width: 14px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+#tip { position: fixed; pointer-events: none; z-index: 10; background: var(--surface); color: var(--ink); border: 1px solid var(--ring);
+       border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.12); display: none; max-width: 280px; }
+#tip .v { font-weight: 600; }
+#tip .k { color: var(--ink-2); }
+a { color: var(--series-1); text-decoration: none; } a:hover { text-decoration: underline; }
+td small, .small { display: block; color: var(--muted); font-size: 12px; }
+td.wrap { min-width: 240px; max-width: 420px; }
+.banner { background: var(--surface); border: 1px solid var(--ring); border-left: 4px solid #c2410c; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+details.card > summary { cursor: pointer; font-weight: 600; font-size: 16px; }
+details.card[open] > summary { margin-bottom: 12px; }
+.hit { fill: transparent; cursor: default; }
+.hit:focus { outline: none; }
+.hit:focus-visible + .dot, .hit:hover + .dot { stroke-width: 3; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Scout</h1>
+    <p class="meta" id="generated"></p>
+  </header>
+  <div id="banner"></div>
+  <section class="kpis" id="kpis" aria-label="Headline numbers"></section>
+
+  <section class="card"><h2>Shortlist</h2><p class="sub" id="shortlist-sub">The best-rated candidates. Rating = mean rubric score, moved by head-to-head results against its neighbours</p><div id="shortlist" class="scroll"></div></section>
+
+  <div class="grid2">
+    <section class="card"><h2>Pipeline</h2><p class="sub">Candidates that reached each stage</p><div id="funnel"></div></section>
+    <section class="card"><h2>Sources</h2><p class="sub">What each discovery source found, and how its candidates rate</p><div id="sources" class="scroll"></div></section>
+  </div>
+
+  <div class="grid2">
+    <section class="card"><h2>Why candidates left</h2><p class="sub">Nothing is dropped for a low score; these are the other exits</p><div id="dropped" class="scroll"></div></section>
+    <section class="card"><h2>Recent runs</h2><p class="sub" id="runs-sub">Unattended passes of the pipeline</p><div id="runs" class="scroll"></div></section>
+  </div>
+
+  <details class="card"><summary>Full ranking</summary><div id="leaderboard" class="scroll"></div></details>
+  <details class="card"><summary>Search coverage</summary><p class="sub">Candidates found by web search per market and niche; untested cells have no searches yet</p><div id="coverage" class="scroll"></div></details>
+  <details class="card" id="exp-card"><summary>Experiments</summary>
+    <div class="grid2">
+      <div><h2>Quality vs capture</h2><p class="sub">Top left (rough page, high capture) is the strongest demand; lines mark signal 5 and 10</p><div id="qmap"></div></div>
+      <div><h2>Rubric check</h2><p class="sub">Rubric score against the signal each candidate earned</p><div id="rubric"></div></div>
+    </div>
+    <div id="experiments" class="scroll"></div>
+  </details>
+  <details class="card"><summary>Where candidates are now</summary><div id="statuses" class="scroll"></div></details>
+</main>
+<div id="tip" role="tooltip"></div>
+<script id="data" type="application/json">{"rubric_version": "2026-11-10", "site_url": "https://davidmaciasr.github.io/scout-dashboard/", "shortlist": [{"place": 1, "domain": "wordpress.org/plugins/disable-json-api", "url": "https://wordpress.org/plugins/disable-json-api/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 75.4, "mean": 73.5, "lo": 71, "hi": 76, "n": 2, "wins": 1, "losses": 0, "triage": 81, "users": 80000, "tranco": null, "summary": "This is a neglected free plugin with 80k installs (last updated about 3.2 years ago, tested only to WP 6.3) that blocks or whitelists WordPress REST API endpoints by user role. It is trivial to rebuild and run alone, but the feature is narrow, usually free and bundled into security suites, and AI adds little, so revenue potential is weak.", "idea": "A maintained REST API firewall plugin that scans installed plugins and recommends which endpoints to keep public so nothing breaks. It would add access logging, rate limiting and policies agencies can push across many sites, with a small paid pro tier.", "weakest": ["Revenue potential 2/5", "Incumbent weakness and AI edge 2/5"], "route": "shortlist"}, {"place": 2, "domain": "addons.mozilla.org/addon/videospeed", "url": "https://addons.mozilla.org/en-US/firefox/addon/videospeed/", "kind": "firefox_addon", "type": "plugin_extension", "source": "firefox_addons", "status": "review", "rating": 74.5, "mean": 74.5, "lo": 72, "hi": 77, "n": 2, "wins": 0, "losses": 0, "triage": 76, "users": 104353, "tranco": null, "summary": "An abandoned Firefox port (last updated 2021) still has about 104k daily users, so demand is real and a rebuild is trivial. But users expect it free, many alternatives exist, and AI adds little to the core job, so revenue potential is weak.", "idea": "A maintained Firefox speed controller with per-site memory, smart skipping of silence and filler using local audio analysis, and optional AI chapter jumps or summaries, sold as a cheap one-time Pro upgrade.", "weakest": ["User purchasing power 2/5", "Revenue potential 2/5"], "route": "shortlist"}, {"place": 3, "domain": "wordpress.org/plugins/all-in-one-favicon", "url": "https://wordpress.org/plugins/all-in-one-favicon/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 73.1, "mean": 73.0, "lo": 73, "hi": 73, "n": 1, "wins": 1, "losses": 1, "triage": 80, "users": 60000, "tranco": null, "summary": "The plugin has 60K installs and has been neglected for 3.3 years, but WordPress core's Site Icon already does the same job for free, so a replacement has almost nothing to sell. It is trivial to build and run, but revenue and purchasing power are minimal, so this is a weak candidate.", "idea": "A modern favicon and brand-icon plugin. It would generate icons with AI from a logo or prompt, produce every size, the SVG and dark-mode variants and the web manifest, and audit how the icons display. A small paid tier could add bulk multisite management.", "weakest": ["Revenue potential 1/5", "User purchasing power 2/5"], "route": "shortlist"}, {"place": 4, "domain": "wordpress.org/plugins/async-javascript", "url": "https://wordpress.org/plugins/async-javascript/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 72.0, "mean": 72.0, "lo": 72, "hi": 72, "n": 1, "wins": 0, "losses": 0, "triage": 81, "users": 60000, "tranco": null, "summary": "This abandoned plugin still has 60,000 installs and good ratings, and a solo-built replacement would be cheap and legally simple. The catch is that WordPress core and many maintained performance plugins now include its async/defer feature, so it is hard to stand out or charge for it.", "idea": "A lightweight script-optimisation plugin that crawls the site and automatically tests which scripts can be deferred, delayed or loaded on interaction without breaking anything. It would report before-and-after Core Web Vitals and sell a pro tier for automatic per-page rules and rollback.", "weakest": ["Incumbent weakness and AI edge 2/5", "User purchasing power 3/5"], "route": "shortlist"}, {"place": 5, "domain": "wordpress.org/plugins/column-shortcodes", "url": "https://wordpress.org/plugins/column-shortcodes/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 70.0, "mean": 68.0, "lo": 68, "hi": 68, "n": 1, "wins": 1, "losses": 0, "triage": 85, "users": 60000, "tranco": null, "summary": "Column Shortcodes is an abandoned but well-rated plugin with 60,000 installs, last updated in 2022 and tested only up to WordPress 6.0. Its job is now done for free by Gutenberg's core Columns block, so the only money left is a small legacy-migration niche.", "idea": "A maintained drop-in plugin that keeps the same [one_half] and other column shortcodes rendering on current WordPress. It would add a one-click converter that turns old column shortcodes into native Gutenberg Columns blocks, perhaps as a cheap paid tier for bulk migration.", "weakest": ["User purchasing power 2/5", "Revenue potential 2/5"], "route": "shortlist"}, {"place": 6, "domain": "wordpress.org/plugins/title-remover", "url": "https://wordpress.org/plugins/title-remover/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 69.0, "mean": 71.0, "lo": 71, "hi": 71, "n": 1, "wins": 0, "losses": 1, "triage": 85, "users": 70000, "tranco": null, "summary": "Title Remover has 70,000+ installs and has not been updated for 5.4 years, so it is a trivial plugin that is easy to rebuild and run alone. The catch is that it solves a commodity cosmetic need already covered by themes and free alternatives, so there is almost no way to make money from it.", "idea": "A maintained, block-editor-native toggle that hides titles. It would detect each theme's title-output method, add bulk and per-post-type rules, and work with full-site-editing themes. It could also be folded into a larger paid layout or SEO toolkit as a lead-in.", "weakest": ["Revenue potential 1/5", "User purchasing power 2/5"], "route": "shortlist"}, {"place": 7, "domain": "wordpress.org/plugins/limit-login-attempts", "url": "https://wordpress.org/plugins/limit-login-attempts/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 68.0, "mean": 66.0, "lo": 66, "hi": 66, "n": 1, "wins": 1, "losses": 0, "triage": 79, "users": 200000, "tranco": null, "summary": "Automattic's original Limit Login Attempts still has 200,000 active installs despite 3.6 years without an update, so demand is proven and the plugin is clearly abandoned. A replacement would be easy to build, but the category is saturated with maintained free and freemium rivals, so displacing it and earning money is hard.", "idea": "A lightweight, maintained login limiter with modern defaults: IPv6 ranges, passkey/2FA option, XML-RPC and REST throttling. A paid agency tier would add a multi-site dashboard and a shared attacker-IP reputation feed. AI could summarise attack patterns in alerts.", "weakest": ["Incumbent weakness and AI edge 2/5", "Low legal and compliance hassle 3/5"], "route": "shortlist"}, {"place": 8, "domain": "wordpress.org/plugins/easy-theme-and-plugin-upgrades", "url": "https://wordpress.org/plugins/easy-theme-and-plugin-upgrades/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 64.0, "mean": 68.0, "lo": 68, "hi": 68, "n": 1, "wins": 0, "losses": 2, "triage": 85, "users": 60000, "tranco": null, "summary": "This free, abandoned plugin (60k installs, last updated in 2022) fixed a WordPress gap that core closed in 5.5, and recent reviews say it's no longer needed. It's easy to build and run alone, but there's no revenue, its demand is shrinking and AI gives no edge, so it's a poor opportunity.", "idea": "A clone has no value on its own. The only angle that might work is a broader 'premium plugin/theme update manager' that keeps backups and rollbacks for zip-installed items and checks vendor update feeds across many sites. That's a different product with established competitors.", "weakest": ["Revenue potential 1/5", "Incumbent weakness and AI edge 1/5"], "route": "shortlist"}], "sources": [{"source": "firefox-addons", "found": 206, "gathered": 83, "triaged": 16, "avg_triage": 62.0, "rated": 1, "avg_rating": 74.5, "best": 74.5, "shortlisted": 1}, {"source": "claude-code", "found": 167, "gathered": 86, "triaged": 11, "avg_triage": 46.0, "rated": 0, "avg_rating": null, "best": null, "shortlisted": 0}, {"source": "wp-plugins", "found": 60, "gathered": 28, "triaged": 15, "avg_triage": 76.0, "rated": 7, "avg_rating": 70.2, "best": 75.4, "shortlisted": 7}, {"source": "seed", "found": 8, "gathered": 8, "triaged": 3, "avg_triage": 42.0, "rated": 0, "avg_rating": null, "best": null, "shortlisted": 0}, {"source": "tranco", "found": 5, "gathered": 3, "triaged": 1, "avg_triage": 52.0, "rated": 0, "avg_rating": null, "best": null, "shortlisted": 0}], "dropped": [{"reason": "Blocklisted (institutions, media, giants)", "count": 49}, {"reason": "Unreachable or behind bot protection", "count": 6}, {"reason": "Sister domain of another candidate", "count": 6}, {"reason": "Too little evidence of users or neglect (prefilter)", "count": 19}, {"reason": "Hard gate at triage (staff, physical, regulated, not a product)", "count": 16}, {"reason": "Hard gate at deep scoring", "count": 0}], "waiting": {"evidence": 183, "triage": 137, "deep score": 22}, "runs": [{"started_at": "2026-11-10T14:25:36+00:00", "ended_at": "2026-11-10T14:44:21+00:00", "steps": {"requeue": {"requeued": 1}, "tranco_list": "fresh", "wp_plugins": {"pages": 6, "seen": 600, "new": 47}, "firefox_addons": {"pages": 15, "seen": 300, "new": 123}, "tranco": {"probed": 150, "new": 2}, "search": {"queries": 4, "failed": 0, "new": 30}, "gather": {"evidence": 60}, "prefilter": {"passed": 59, "filtered": 0, "duplicates": 1, "fast_tracked": 1}, "triage": {"triaged": 27, "dropped": 13, "errors": 0}, "score": {"scored": 8}, "rescore": {"scored": 2}, "gate_pre": {"ranked": 8, "-> review": 8}, "compare": {"matches": 4, "errors": 0}, "gate": {"ranked": 8}}, "errors": [], "new_in_top": ["wordpress.org/plugins/disable-json-api", "addons.mozilla.org/addon/videospeed", "wordpress.org/plugins/all-in-one-favicon", "wordpress.org/plugins/async-javascript", "wordpress.org/plugins/column-shortcodes", "wordpress.org/plugins/title-remover", "wordpress.org/plugins/limit-login-attempts", "wordpress.org/plugins/easy-theme-and-plugin-upgrades"], "quota_hit": false}, {"started_at": "2026-11-10T14:21:51+00:00", "ended_at": "2026-11-10T14:23:36+00:00", "steps": {"requeue": {"requeued": 88}, "gather": {"evidence": 60}, "prefilter": {"passed": 124, "filtered": 19, "duplicates": 5, "fast_tracked": 0}}, "errors": [], "new_in_top": [], "quota_hit": false}], "generated_at": "2026-11-10T14:44+00:00", "kpis": {"queries": 70, "queries_failed": 2, "candidates": 446, "sources": 5, "triaged": 46, "rated": 8, "shortlist": 8, "best": 75.4, "best_name": "wordpress.org/plugins/disable-json-api", "scored": 98, "approved": 4, "experiments": 0, "scaled": 0}, "funnel": [{"stage": "Found", "count": 446}, {"stage": "Evidence gathered", "count": 214}, {"stage": "Passed prefilter", "count": 183}, {"stage": "Passed triage", "count": 29}, {"stage": "Deep-scored", "count": 8}, {"stage": "In the ranking", "count": 8}, {"stage": "Shortlisted", "count": 8}, {"stage": "Experiment run", "count": 0}], "status_counts": {"dropped": 16, "duplicate": 6, "excluded": 49, "filtered": 19, "needs_browser": 5, "new": 183, "prefiltered": 137, "review": 8, "triaged": 22, "unreachable": 1}, "coverage": [{"market": "es", "niche": "events", "queries": 1, "failed": 0, "candidates": 4}, {"market": "es", "niche": "expat_boards", "queries": 1, "failed": 0, "candidates": 11}, {"market": "es", "niche": "money_forums", "queries": 1, "failed": 0, "candidates": 8}, {"market": "es", "niche": "musicians", "queries": 1, "failed": 0, "candidates": 11}, {"market": "es", "niche": "niche_gear", "queries": 1, "failed": 0, "candidates": 4}, {"market": "es", "niche": "space_rental", "queries": 1, "failed": 0, "candidates": 7}, {"market": "es", "niche": "trades", "queries": 1, "failed": 0, "candidates": 6}, {"market": "es", "niche": "tutors", "queries": 1, "failed": 0, "candidates": 14}, {"market": "global", "niche": "firefox_addons", "queries": 31, "failed": 1, "candidates": 206}, {"market": "global", "niche": "tranco", "queries": 2, "failed": 0, "candidates": 5}, {"market": "global", "niche": "wp_plugins", "queries": 12, "failed": 0, "candidates": 60}, {"market": "ie", "niche": "events", "queries": 2, "failed": 0, "candidates": 10}, {"market": "ie", "niche": "expat_boards", "queries": 2, "failed": 0, "candidates": 7}, {"market": "ie", "niche": "money_forums", "queries": 2, "failed": 0, "candidates": 17}, {"market": "ie", "niche": "musicians", "queries": 3, "failed": 1, "candidates": 21}, {"market": "ie", "niche": "niche_gear", "queries": 2, "failed": 0, "candidates": 13}, {"market": "ie", "niche": "parenting_forums", "queries": 0, "failed": 0, "candidates": 1}, {"market": "ie", "niche": "space_rental", "queries": 2, "failed": 0, "candidates": 3}, {"market": "ie", "niche": "trades", "queries": 2, "failed": 0, "candidates": 14}, {"market": "ie", "niche": "tutors", "queries": 2, "failed": 0, "candidates": 24}], "leaderboard": [{"place": 1, "domain": "wordpress.org/plugins/disable-json-api", "url": "https://wordpress.org/plugins/disable-json-api/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 75.4, "mean": 73.5, "lo": 71, "hi": 76, "n": 2, "wins": 1, "losses": 0, "triage": 81, "users": 80000, "tranco": null, "summary": "This is a neglected free plugin with 80k installs (last updated about 3.2 years ago, tested only to WP 6.3) that blocks or whitelists WordPress REST API endpoints by user role. It is trivial to rebuild and run alone, but the feature is narrow, usually free and bundled into security suites, and AI adds little, so revenue potential is weak.", "idea": "A maintained REST API firewall plugin that scans installed plugins and recommends which endpoints to keep public so nothing breaks. It would add access logging, rate limiting and policies agencies can push across many sites, with a small paid pro tier.", "weakest": ["Revenue potential 2/5", "Incumbent weakness and AI edge 2/5"], "route": "shortlist"}, {"place": 2, "domain": "addons.mozilla.org/addon/videospeed", "url": "https://addons.mozilla.org/en-US/firefox/addon/videospeed/", "kind": "firefox_addon", "type": "plugin_extension", "source": "firefox_addons", "status": "review", "rating": 74.5, "mean": 74.5, "lo": 72, "hi": 77, "n": 2, "wins": 0, "losses": 0, "triage": 76, "users": 104353, "tranco": null, "summary": "An abandoned Firefox port (last updated 2021) still has about 104k daily users, so demand is real and a rebuild is trivial. But users expect it free, many alternatives exist, and AI adds little to the core job, so revenue potential is weak.", "idea": "A maintained Firefox speed controller with per-site memory, smart skipping of silence and filler using local audio analysis, and optional AI chapter jumps or summaries, sold as a cheap one-time Pro upgrade.", "weakest": ["User purchasing power 2/5", "Revenue potential 2/5"], "route": "shortlist"}, {"place": 3, "domain": "wordpress.org/plugins/all-in-one-favicon", "url": "https://wordpress.org/plugins/all-in-one-favicon/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 73.1, "mean": 73.0, "lo": 73, "hi": 73, "n": 1, "wins": 1, "losses": 1, "triage": 80, "users": 60000, "tranco": null, "summary": "The plugin has 60K installs and has been neglected for 3.3 years, but WordPress core's Site Icon already does the same job for free, so a replacement has almost nothing to sell. It is trivial to build and run, but revenue and purchasing power are minimal, so this is a weak candidate.", "idea": "A modern favicon and brand-icon plugin. It would generate icons with AI from a logo or prompt, produce every size, the SVG and dark-mode variants and the web manifest, and audit how the icons display. A small paid tier could add bulk multisite management.", "weakest": ["Revenue potential 1/5", "User purchasing power 2/5"], "route": "shortlist"}, {"place": 4, "domain": "wordpress.org/plugins/async-javascript", "url": "https://wordpress.org/plugins/async-javascript/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 72.0, "mean": 72.0, "lo": 72, "hi": 72, "n": 1, "wins": 0, "losses": 0, "triage": 81, "users": 60000, "tranco": null, "summary": "This abandoned plugin still has 60,000 installs and good ratings, and a solo-built replacement would be cheap and legally simple. The catch is that WordPress core and many maintained performance plugins now include its async/defer feature, so it is hard to stand out or charge for it.", "idea": "A lightweight script-optimisation plugin that crawls the site and automatically tests which scripts can be deferred, delayed or loaded on interaction without breaking anything. It would report before-and-after Core Web Vitals and sell a pro tier for automatic per-page rules and rollback.", "weakest": ["Incumbent weakness and AI edge 2/5", "User purchasing power 3/5"], "route": "shortlist"}, {"place": 5, "domain": "wordpress.org/plugins/column-shortcodes", "url": "https://wordpress.org/plugins/column-shortcodes/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 70.0, "mean": 68.0, "lo": 68, "hi": 68, "n": 1, "wins": 1, "losses": 0, "triage": 85, "users": 60000, "tranco": null, "summary": "Column Shortcodes is an abandoned but well-rated plugin with 60,000 installs, last updated in 2022 and tested only up to WordPress 6.0. Its job is now done for free by Gutenberg's core Columns block, so the only money left is a small legacy-migration niche.", "idea": "A maintained drop-in plugin that keeps the same [one_half] and other column shortcodes rendering on current WordPress. It would add a one-click converter that turns old column shortcodes into native Gutenberg Columns blocks, perhaps as a cheap paid tier for bulk migration.", "weakest": ["User purchasing power 2/5", "Revenue potential 2/5"], "route": "shortlist"}, {"place": 6, "domain": "wordpress.org/plugins/title-remover", "url": "https://wordpress.org/plugins/title-remover/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 69.0, "mean": 71.0, "lo": 71, "hi": 71, "n": 1, "wins": 0, "losses": 1, "triage": 85, "users": 70000, "tranco": null, "summary": "Title Remover has 70,000+ installs and has not been updated for 5.4 years, so it is a trivial plugin that is easy to rebuild and run alone. The catch is that it solves a commodity cosmetic need already covered by themes and free alternatives, so there is almost no way to make money from it.", "idea": "A maintained, block-editor-native toggle that hides titles. It would detect each theme's title-output method, add bulk and per-post-type rules, and work with full-site-editing themes. It could also be folded into a larger paid layout or SEO toolkit as a lead-in.", "weakest": ["Revenue potential 1/5", "User purchasing power 2/5"], "route": "shortlist"}, {"place": 7, "domain": "wordpress.org/plugins/limit-login-attempts", "url": "https://wordpress.org/plugins/limit-login-attempts/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 68.0, "mean": 66.0, "lo": 66, "hi": 66, "n": 1, "wins": 1, "losses": 0, "triage": 79, "users": 200000, "tranco": null, "summary": "Automattic's original Limit Login Attempts still has 200,000 active installs despite 3.6 years without an update, so demand is proven and the plugin is clearly abandoned. A replacement would be easy to build, but the category is saturated with maintained free and freemium rivals, so displacing it and earning money is hard.", "idea": "A lightweight, maintained login limiter with modern defaults: IPv6 ranges, passkey/2FA option, XML-RPC and REST throttling. A paid agency tier would add a multi-site dashboard and a shared attacker-IP reputation feed. AI could summarise attack patterns in alerts.", "weakest": ["Incumbent weakness and AI edge 2/5", "Low legal and compliance hassle 3/5"], "route": "shortlist"}, {"place": 8, "domain": "wordpress.org/plugins/easy-theme-and-plugin-upgrades", "url": "https://wordpress.org/plugins/easy-theme-and-plugin-upgrades/", "kind": "wp_plugin", "type": "plugin_extension", "source": "wp_plugins", "status": "review", "rating": 64.0, "mean": 68.0, "lo": 68, "hi": 68, "n": 1, "wins": 0, "losses": 2, "triage": 85, "users": 60000, "tranco": null, "summary": "This free, abandoned plugin (60k installs, last updated in 2022) fixed a WordPress gap that core closed in 5.5, and recent reviews say it's no longer needed. It's easy to build and run alone, but there's no revenue, its demand is shrinking and AI gives no edge, so it's a poor opportunity.", "idea": "A clone has no value on its own. The only angle that might work is a broader 'premium plugin/theme update manager' that keeps backups and rollbacks for zip-installed items and checks vendor update feeds across many sites. That's a different product with established competitors.", "weakest": ["Revenue potential 1/5", "Incumbent weakness and AI edge 1/5"], "route": "shortlist"}], "experiments": []}</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const NS = "http://www.w3.org/2000/svg";
+  const fmt = (n) => (n === null || n === undefined || n === "") ? "–" : (typeof n === "number" ? n.toLocaleString("en-IE") : String(n));
+
+  function el(tag, attrs = {}, text) {
+    const e = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (text !== undefined) e.textContent = text;   // labels are untrusted: always textContent
+    return e;
+  }
+  function s(tag, attrs = {}, text) {
+    const e = document.createElementNS(NS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    if (text !== undefined) e.textContent = text;
+    return e;
+  }
+  function empty(host, msg) { host.replaceChildren(el("p", { class: "empty" }, msg)); }
+
+  // --- tooltip: values lead, labels follow; same on hover and keyboard focus
+  const tip = document.getElementById("tip");
+  function showTip(evt, rows, title) {
+    tip.replaceChildren();
+    if (title) tip.append(el("div", { class: "v" }, title));
+    for (const [k, v] of rows) {
+      const line = el("div");
+      line.append(el("span", { class: "v" }, fmt(v)), document.createTextNode(" "), el("span", { class: "k" }, k));
+      tip.append(line);
+    }
+    tip.style.display = "block";
+    const r = evt.target.getBoundingClientRect();
+    const x = evt.clientX ?? (r.left + r.width / 2), y = evt.clientY ?? r.top;
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(window.innerWidth - w - 8, Math.max(8, x + 12)) + "px";
+    tip.style.top = Math.max(8, y - h - 12) + "px";
+  }
+  const hideTip = () => { tip.style.display = "none"; };
+  function hover(node, rows, title) {
+    node.setAttribute("tabindex", "0");
+    node.addEventListener("pointermove", (e) => showTip(e, rows, title));
+    node.addEventListener("focus", (e) => showTip(e, rows, title));
+    node.addEventListener("pointerleave", hideTip);
+    node.addEventListener("blur", hideTip);
+  }
+
+  function table(host, cols, rows, emptyMsg) {
+    if (!rows.length) return empty(host, emptyMsg);
+    const t = el("table"), head = el("tr");
+    for (const c of cols) head.append(el("th", c.num ? { class: "num" } : {}, c.label));
+    t.appendChild(el("thead")).append(head);
+    const body = t.appendChild(el("tbody"));
+    for (const r of rows) {
+      const tr = el("tr");
+      for (const c of cols) {
+        const v = c.get(r);
+        const td = el("td", { class: [c.num ? "num" : "", c.wrap ? "wrap" : "", v === null || v === undefined ? "dim" : ""].join(" ").trim() });
+        if (v instanceof Node) td.append(v); else td.textContent = fmt(v);
+        if (c.sub) { const sv = c.sub(r); if (sv) td.append(el("small", {}, sv)); }
+        tr.append(td);
+      }
+      body.append(tr);
+    }
+    host.replaceChildren(t);
+  }
+
+  // --- header, staleness banner + KPI tiles
+  const built = new Date(D.generated_at);
+  const hours = (Date.now() - built.getTime()) / 36e5;
+  const ago = hours < 1 ? "less than an hour ago" : hours < 48 ? `${Math.round(hours)} hours ago` : `${Math.round(hours / 24)} days ago`;
+  document.getElementById("generated").textContent =
+    `Updated ${ago} (${D.generated_at.replace("T", " ").replace("+00:00", "")} UTC) · rubric ${D.rubric_version || "–"}`;
+  const lastRun = (D.runs || [])[0];
+  const warn = [];
+  if (hours > 36) warn.push(`This page is ${ago.replace(" ago", "")} old: the scheduled run has not finished since then.`);
+  if (lastRun && lastRun.quota_hit) warn.push("The last run stopped its model steps early on the Claude plan limit; the queue carries over to the next run.");
+  if (lastRun && (lastRun.errors || []).length) warn.push("Last run reported: " + lastRun.errors.slice(0, 3).join(" · "));
+  if (warn.length) { const bn = el("div", { class: "banner" }); for (const w of warn) bn.append(el("div", {}, w)); document.getElementById("banner").append(bn); }
+
+  const K = D.kpis, Wq = D.waiting || {};
+  const tiles = [
+    ["Candidates found", K.candidates, `from ${fmt(K.sources)} sources`],
+    ["Triaged", K.triaged, "quick first pass"],
+    ["In the ranking", K.rated, "deep-scored, past the hard gate"],
+    ["Shortlist", K.shortlist, "top-rated, waiting for you"],
+    ["Best rating", K.best, K.best_name || "nothing ranked yet"],
+    ["Queue", (Wq.evidence || 0) + (Wq.triage || 0) + (Wq["deep score"] || 0), `${fmt(Wq.evidence)} evidence · ${fmt(Wq.triage)} triage · ${fmt(Wq["deep score"])} deep score`],
+  ];
+  const kp = document.getElementById("kpis");
+  for (const [label, value, note] of tiles) {
+    const t = el("div", { class: "tile" });
+    t.append(el("div", { class: "label" }, label), el("div", { class: "value" }, fmt(value)), el("div", { class: "note" }, note));
+    kp.append(t);
+  }
+
+  // --- shortlist
+  const KIND = { site: "website", wp_plugin: "WordPress plugin", firefox_addon: "Firefox add-on" };
+  const link = (r) => { const a = el("a", { href: r.url, rel: "noopener noreferrer", target: "_blank" }, r.domain.replace(/^(wordpress\.org\/plugins|addons\.mozilla\.org\/addon)\//, "")); return a; };
+  const spread = (r) => r.n > 1 ? `${fmt(r.mean)} (${r.lo}–${r.hi}, ${r.n} scores)` : `${fmt(r.mean)} (1 score)`;
+  table(document.getElementById("shortlist"), [
+    { label: "#", num: true, get: (r) => r.place },
+    { label: "Candidate", get: link, sub: (r) => [KIND[r.kind] || r.kind, (r.type || "").replace(/_/g, " ")].filter(Boolean).join(" · ") },
+    { label: "Rating", num: true, get: (r) => r.rating },
+    { label: "Rubric score", num: true, get: spread },
+    { label: "Head to head", num: true, get: (r) => (r.wins + r.losses) ? `${r.wins}–${r.losses}` : null },
+    { label: "Users", num: true, get: (r) => r.users || (r.tranco ? `rank ${fmt(r.tranco)}` : null) },
+    { label: "What it is", wrap: true, get: (r) => r.summary },
+    { label: "Replacement idea", wrap: true, get: (r) => r.idea, sub: (r) => (r.weakest || []).length ? "Weak points: " + r.weakest.join(", ") : "" },
+    { label: "Status", get: (r) => r.status === "review" ? "shortlisted" : r.status, sub: (r) => r.route },
+  ], D.shortlist || [], "Nothing shortlisted yet. Candidates appear here once the deep scorer has judged them.");
+
+  table(document.getElementById("sources"), [
+    { label: "Source", get: (r) => r.source },
+    { label: "Found", num: true, get: (r) => r.found },
+    { label: "Triaged", num: true, get: (r) => r.triaged },
+    { label: "Avg triage", num: true, get: (r) => r.avg_triage },
+    { label: "Ranked", num: true, get: (r) => r.rated },
+    { label: "Avg rating", num: true, get: (r) => r.avg_rating },
+    { label: "Best", num: true, get: (r) => r.best },
+    { label: "Shortlisted", num: true, get: (r) => r.shortlisted },
+  ], D.sources || [], "No sources have run yet.");
+
+  table(document.getElementById("dropped"), [
+    { label: "Reason", get: (r) => r.reason },
+    { label: "Candidates", num: true, get: (r) => r.count },
+  ], D.dropped || [], "Nothing dropped.");
+
+  const stepNote = (v) => typeof v === "string" ? v : Object.entries(v || {}).map(([k, n]) => `${k} ${n}`).join(", ");
+  table(document.getElementById("runs"), [
+    { label: "Started (UTC)", get: (r) => r.started_at.slice(0, 16).replace("T", " ") },
+    { label: "Minutes", num: true, get: (r) => r.ended_at ? Math.round((new Date(r.ended_at) - new Date(r.started_at)) / 6e4) : null },
+    { label: "New", num: true, get: (r) => ["wp_plugins", "firefox_addons", "tranco", "search"].reduce((n, k) => n + (((r.steps || {})[k] || {}).new || 0), 0) },
+    { label: "Triaged", num: true, get: (r) => ((r.steps || {}).triage || {}).triaged },
+    { label: "Deep-scored", num: true, get: (r) => { const s = (r.steps || {}).score; return s && typeof s === "object" ? Object.entries(s).filter(([k]) => k !== "error").reduce((n, [, v]) => n + v, 0) : null; } },
+    { label: "Notes", wrap: true, get: (r) => [r.quota_hit ? "plan limit hit" : "", (r.new_in_top || []).length ? "new in top: " + r.new_in_top.join(", ") : "", ...(r.errors || []).slice(0, 2)].filter(Boolean).join(" · ") || null },
+  ], D.runs || [], "No unattended runs recorded yet.");
+
+  // --- pipeline: horizontal bars, one hue, value at the tip
+  (function funnel() {
+    const host = document.getElementById("funnel");
+    const rows = D.funnel, max = Math.max(1, ...rows.map((r) => r.count));
+    if (!rows[0].count) return empty(host, "No candidates yet. Run scout seed or scout shortlist.");
+    const W = 480, labelW = 128, bar = 18, gap = 14, valueW = 44, H = rows.length * (bar + gap);
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Candidates per pipeline stage" });
+    const x = (v) => (W - labelW - valueW) * v / max;
+    svg.append(s("line", { x1: labelW, x2: labelW, y1: 0, y2: H - gap, stroke: "var(--axis)", "stroke-width": 1 }));
+    rows.forEach((r, i) => {
+      const y = i * (bar + gap), w = x(r.count), g = s("g");
+      g.append(s("text", { x: labelW - 10, y: y + bar / 2 + 4, "text-anchor": "end" }, r.stage));
+      if (w > 0) {
+        const rr = Math.min(4, w);
+        g.append(s("path", { d: `M${labelW} ${y}H${labelW + w - rr}Q${labelW + w} ${y} ${labelW + w} ${y + rr}V${y + bar - rr}Q${labelW + w} ${y + bar} ${labelW + w - rr} ${y + bar}H${labelW}Z`, fill: "var(--series-1)" }));
+      }
+      g.append(s("text", { x: labelW + w + 6, y: y + bar / 2 + 4, style: "fill:var(--ink);font-variant-numeric:tabular-nums" }, fmt(r.count)));
+      const pct = rows[0].count ? Math.round(100 * r.count / rows[0].count) : 0;
+      const hit = s("rect", { class: "hit", x: 0, y: y - gap / 2, width: W, height: bar + gap });
+      hover(hit, [["candidates", r.count], ["of all found", pct + "%"]], r.stage);
+      g.append(hit);
+      svg.append(g);
+    });
+    host.replaceChildren(svg);
+  })();
+
+  // --- coverage: market x niche heat table (sequential blue, 5 bins); doubles as its own table view
+  (function coverage() {
+    const host = document.getElementById("coverage");
+    const cells = D.coverage;
+    if (!cells.length) return empty(host, "No search space configured.");
+    const markets = [...new Set(cells.map((c) => c.market))], niches = [...new Set(cells.map((c) => c.niche))];
+    const max = Math.max(1, ...cells.map((c) => c.candidates));
+    const bin = (n) => n <= 0 ? 1 : Math.min(5, 1 + Math.ceil(4 * n / max));
+    const t = el("table", { class: "heat" }), head = el("tr");
+    head.append(el("th", {}, "Niche"));
+    for (const m of markets) head.append(el("th", { style: "text-align:center" }, m.toUpperCase()));
+    t.appendChild(el("thead")).append(head);
+    const body = t.appendChild(el("tbody"));
+    for (const n of niches) {
+      const tr = el("tr");
+      tr.append(el("td", {}, n.replace(/_/g, " ")));
+      for (const m of markets) {
+        const c = cells.find((x) => x.market === m && x.niche === n) || { queries: 0, failed: 0, candidates: 0 };
+        const tested = c.queries > 0 || c.candidates > 0;
+        const td = el("td", { class: "cell" + (tested ? "" : " untested") }, tested ? fmt(c.candidates) : "untested");
+        if (tested) { const b = bin(c.candidates); td.style.background = `var(--seq-${b})`; td.style.color = `var(--seq-ink-${b})`; }
+        hover(td, [["candidates", c.candidates], ["queries run", c.queries], ["queries failed", c.failed]], `${n.replace(/_/g, " ")} · ${m.toUpperCase()}`);
+        tr.append(td);
+      }
+      body.append(tr);
+    }
+    const legend = el("div", { class: "legend" });
+    legend.append(el("span", {}, "Fewer"));
+    for (let b = 1; b <= 5; b++) { const sw = el("span", { class: "swatch" }); sw.style.background = `var(--seq-${b})`; legend.append(sw); }
+    legend.append(el("span", {}, `More (max ${fmt(max)})`));
+    host.replaceChildren(t, legend);
+  })();
+
+  // --- scatter helper: one series, 2px surface ring, 24px hit areas, selective direct labels
+  function scatter(hostId, pts, opt) {
+    const host = document.getElementById(hostId);
+    if (!pts.length) return empty(host, opt.emptyMsg);
+    const W = 480, H = 300, m = { l: 44, r: 64, t: 12, b: 40 };
+    const xr = opt.x, yMax = Math.max(opt.yMin, ...pts.map((p) => p.y)) * 1.1;
+    const X = (v) => m.l + (v - xr[0]) / (xr[1] - xr[0]) * (W - m.l - m.r);
+    const Y = (v) => H - m.b - v / yMax * (H - m.t - m.b);
+    const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opt.label });
+    const step = niceStep(yMax / 4);
+    for (let v = 0; v <= yMax + 1e-9; v += step) {
+      svg.append(s("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: "var(--grid)", "stroke-width": 1 }));
+      svg.append(s("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end", style: "font-variant-numeric:tabular-nums" }, fmt(+v.toFixed(1))));
+    }
+    for (const v of opt.xTicks) svg.append(s("text", { x: X(v), y: H - m.b + 18, "text-anchor": "middle", style: "font-variant-numeric:tabular-nums" }, opt.xFmt(v)));
+    svg.append(s("line", { x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0), stroke: "var(--axis)", "stroke-width": 1 }));
+    svg.append(s("text", { class: "axis-label", x: (m.l + W - m.r) / 2, y: H - 4, "text-anchor": "middle" }, opt.xLabel));
+    svg.append(s("text", { class: "axis-label", x: 12, y: m.t + 4, transform: `rotate(-90 12 ${m.t + 4})`, "text-anchor": "end" }, opt.yLabel));
+    if (opt.refs) for (const r of opt.refs) {   // reference lines through the origin: y = k * x
+      const x2 = Math.min(xr[1], yMax / r.k);
+      svg.append(s("line", { x1: X(xr[0]), y1: Y(r.k * xr[0]), x2: X(x2), y2: Y(r.k * x2), stroke: "var(--axis)", "stroke-width": 1 }));
+      svg.append(s("text", { class: "axis-label", x: X(x2) + 4, y: Y(r.k * x2) + 4 }, r.label));
+    }
+    const label = pts.length <= 6;
+    for (const p of pts) {
+      const g = s("g"), cx = X(p.x), cy = Y(p.y);
+      const hit = s("circle", { class: "hit", cx, cy, r: 12 });
+      hover(hit, p.rows, p.name);
+      g.append(hit, s("circle", { class: "dot", cx, cy, r: 5, fill: "var(--series-1)", stroke: "var(--surface)", "stroke-width": 2, "pointer-events": "none" }));
+      if (label) g.append(s("text", { x: cx + 9, y: cy + 4, "pointer-events": "none" }, p.name));
+      svg.append(g);
+    }
+    host.replaceChildren(svg);
+  }
+  function niceStep(raw) {
+    const p = Math.pow(10, Math.floor(Math.log10(raw || 1))), f = raw / p;
+    return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * p;
+  }
+
+  const done = D.experiments.filter((e) => e.status === "concluded");
+  scatter("qmap", done.map((e) => ({
+    name: e.domain, x: e.quality_factor, y: e.lower_pct,
+    rows: [["signal", e.signal], ["capture L (%)", e.lower_pct], ["quality Q", e.quality_factor], ["reached", e.reached], ["outcome", e.outcome]],
+  })), {
+    label: "Capture rate against page quality for concluded experiments", emptyMsg: "No concluded experiments yet.",
+    x: [0, 1], xTicks: [0.2, 0.4, 0.6, 0.8, 1], xFmt: (v) => v.toFixed(1), xLabel: "Quality Q (rough → polished)",
+    yLabel: "Capture L (%)", yMin: 12, refs: [{ k: 10, label: "signal 10" }, { k: 5, label: "signal 5" }],
+  });
+  scatter("rubric", done.map((e) => ({
+    name: e.domain, x: e.rubric_total, y: e.signal,
+    rows: [["signal", e.signal], ["rubric total", e.rubric_total], ["route", e.route], ["outcome", e.outcome]],
+  })), {
+    label: "Signal against rubric score for concluded experiments", emptyMsg: "No concluded experiments yet. This fills in as tests finish.",
+    x: [0, 100], xTicks: [0, 20, 40, 60, 80, 100], xFmt: (v) => String(v), xLabel: "Rubric total", yLabel: "Signal", yMin: 12,
+  });
+
+  table(document.getElementById("experiments"), [
+    { label: "#", num: true, get: (r) => r.id },
+    { label: "Candidate", get: (r) => r.domain },
+    { label: "Status", get: (r) => r.status },
+    { label: "Reached", num: true, get: (r) => r.reached },
+    { label: "Qualified", num: true, get: (r) => r.qualified },
+    { label: "Emails", num: true, get: (r) => r.emails },
+    { label: "Spend €", num: true, get: (r) => r.spend_eur },
+    { label: "€ / lead", num: true, get: (r) => r.cost_per_lead },
+    { label: "Q (1–5)", num: true, get: (r) => r.quality },
+    { label: "L %", num: true, get: (r) => r.lower_pct },
+    { label: "Signal", num: true, get: (r) => r.signal },
+    { label: "Outcome", get: (r) => r.outcome },
+    { label: "Route", get: (r) => r.route },
+  ], D.experiments, "No experiments yet. Approved candidates get one with scout experiment draft.");
+
+  if (!D.experiments.length) document.getElementById("exp-card").style.display = "none";
+
+  table(document.getElementById("leaderboard"), [
+    { label: "#", num: true, get: (r) => r.place },
+    { label: "Candidate", get: link, sub: (r) => KIND[r.kind] || r.kind },
+    { label: "Source", get: (r) => r.source.replace(/_/g, " ") },
+    { label: "Rating", num: true, get: (r) => r.rating },
+    { label: "Rubric score", num: true, get: spread },
+    { label: "Triage", num: true, get: (r) => r.triage },
+    { label: "Head to head", num: true, get: (r) => (r.wins + r.losses) ? `${r.wins}–${r.losses}` : null },
+    { label: "Status", get: (r) => r.status === "review" ? "shortlisted" : r.status },
+  ], D.leaderboard, "Nothing ranked yet.");
+
+  const order = ["new", "needs_browser", "unreachable", "evidence", "needs_evidence", "prefiltered", "filtered", "duplicate", "triaged",
+                 "scored", "ranked", "review", "approved",
+                 "experimenting", "more_reach", "iterate", "scale", "dropped"];
+  const sc = Object.entries(D.status_counts).sort((a, b) => (order.indexOf(a[0]) + 99) % 99 - (order.indexOf(b[0]) + 99) % 99);
+  table(document.getElementById("statuses"), [
+    { label: "Status", get: (r) => r[0].replace(/_/g, " ") },
+    { label: "Candidates", num: true, get: (r) => r[1] },
+  ], sc, "No candidates yet.");
+})();
+</script>
+</body>
+</html>
